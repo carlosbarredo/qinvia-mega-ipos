@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*
+data/
+figures/
+output/
+outputs/
+cache/
+*.csv
+*.parquet
+*.feather
+*.sqlite3
