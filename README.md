@@ -1,56 +1,58 @@
-# Megasalidas a bolsa: reproducción pública de precios
+# Mega IPOs: public price reproduction
 
-Este paquete reconstruye con datos gratuitos las **tablas de precios y retornos** de la cohorte de 16 IPO del estudio, edición de trabajo 5 (16-11-2026). Contiene solo código y metadatos de la cohorte: no incluye cotizaciones, factores descargados ni resultados derivados. Se puede ejecutar fuera de la infraestructura de ETF Equity Lab; no necesita `shared` ni rutas internas del estudio.
+**Languages:** [English](README.md) · [Español](README_ES.md)
 
-## Instalar y ejecutar
+This package reconstructs the **price and return tables** for the study's cohort of 16 IPOs using freely accessible data, working edition 5 (2026-11-16). It contains code and cohort metadata only: no market prices, downloaded factors, or derived results. It runs outside ETF Equity Lab's infrastructure and requires no internal `shared` directory or study paths.
 
-Se probó con **Python 3.15.2** y las versiones fijadas en `requirements.txt`. Desde esta carpeta, en un entorno Python 3.15 ya preparado:
+## Install and run
+
+Tested with **Python 3.15.2** and the versions pinned in `requirements.txt`. From this directory, in an existing Python 3.15 environment:
 
 ```bash
 python3.15 -m pip install -r requirements.txt
-python3.15 fetch.py --out /tmp/mega_ipos_descarga_20261116
+python3.15 fetch.py --out /tmp/mega_ipos_download_20261116
 python3.15 compute.py \
-  --input /tmp/mega_ipos_descarga_20261116 \
-  --output /tmp/mega_ipos_calculo_20261116
+  --input /tmp/mega_ipos_download_20261116 \
+  --output /tmp/mega_ipos_calculation_20261116
 ```
 
-Sustituye las dos rutas `/tmp/` por carpetas locales propias **fuera de `public_pipeline/` y del repositorio** si quieres conservar las salidas. Cada ruta de salida debe ser nueva: los programas rechazan carpetas existentes para evitar sobrescribir una ejecución anterior. La descarga necesita conexión a Yahoo Finance y a la [biblioteca de Kenneth French](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html). `fetch.py` consulta los 16 casos una vez y descarga un ZIP de factores; informa `received`, `empty` o `error` por caso en su manifiesto. Si termina con código 2, consulta ese manifiesto antes de calcular.
+Replace both `/tmp/` paths with your own local directories **outside this repository** if you want to keep the outputs. Each output path must be new: the scripts refuse existing directories to avoid overwriting a prior run. Fetching requires access to Yahoo Finance and [Kenneth French's Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html). `fetch.py` requests each of the 16 cases once and downloads a factor ZIP. Its manifest reports `received`, `empty`, or `error` for each case. If it exits with code 2, inspect that manifest before calculating.
 
-## Qué produce
+## Outputs
 
-| Carpeta | Archivo | Contenido |
+| Directory | File | Contents |
 |---|---|---|
-| Descarga | `raw/yahoo/<símbolo>.csv` | Barras diarias devueltas por `yfinance.Ticker.history`; una por símbolo con datos. |
-| Descarga | `raw/french/f_f_research_data_factors_daily_csv.zip` | Factor diario original de French. |
-| Descarga | `manifest.json` | Hora UTC, versiones, parámetros, estado, filas y SHA-256 de cada respuesta guardada. |
-| Cálculo | `case_horizon.csv` | 16 casos × 9 horizontes = 144 posiciones, con fecha objetivo, estado, pop y retornos cuando son calculables. |
-| Cálculo | `case_summary.csv`, `coverage.csv`, `medians.csv` | Resumen por IPO, cobertura por horizonte y medianas con sus denominadores. |
-| Cálculo | `summary.json`, `qa.json`, `manifest.json` | Recuentos, lagunas, comprobaciones de calendario, versiones y SHA-256 de entradas y salidas. |
+| Download | `raw/yahoo/<symbol>.csv` | Daily bars returned by `yfinance.Ticker.history`, one file per symbol with observations. |
+| Download | `raw/french/f_f_research_data_factors_daily_csv.zip` | Original French daily factor file. |
+| Download | `manifest.json` | UTC time, versions, parameters, status, row counts, and SHA-256 of each saved response. |
+| Calculation | `case_horizon.csv` | 16 cases × 9 horizons = 144 positions, with target session, status, first-day pop, and returns when available. |
+| Calculation | `case_summary.csv`, `coverage.csv`, `medians.csv` | IPO summaries, coverage by horizon, and medians with sample sizes. |
+| Calculation | `summary.json`, `qa.json`, `manifest.json` | Counts, gaps, calendar checks, versions, and input/output SHA-256 hashes. |
 
-Las fechas, precios de oferta, tickers y enlaces a los prospectos SEC de los 16 casos están en `cohort.json`. D0 es la fecha de primera sesión fijada por el estudio; el prospecto respalda la oferta, mientras que `d0_date_basis` identifica la procedencia de la fecha. El programa comprueba si la barra descargada contiene D0, pero no verifica de nuevo todos los hechos de la IPO.
+Dates, offer prices, tickers, and SEC prospectus links for the 16 cases are in `cohort.json`. D0 is the first trading session fixed by the study. The prospectus supports the offer information, while `d0_date_basis` records the basis for the date. The program checks whether the downloaded bars include D0; it does not independently reverify every IPO fact.
 
-## Definiciones del cálculo
+## Calculation definitions
 
-La descarga comienza en D0 y termina en la sesión del **13-11-2026**, inclusive; la petición usa `end=2026-11-14`, exclusivo. `fetch.py` llama a [`Ticker.history`](https://ranaroussi.github.io/yfinance/reference/yfinance.price_history.html) con `interval="1d"`, `auto_adjust=False`, `actions=True`, `repair=False`, `keepna=True` y `prepost=False`. Así se conservan `Close`, `Adj Close`, dividendos y splits para revisar los ajustes. Los CSV son la salida de *yfinance*, no una copia de la respuesta HTTP original de Yahoo.
+Downloads start at D0 and end with the **2026-11-13** session, inclusive; the request uses the exclusive `end=2026-11-14`. `fetch.py` calls [`Ticker.history`](https://ranaroussi.github.io/yfinance/reference/yfinance.price_history.html) with `interval="1d"`, `auto_adjust=False`, `actions=True`, `repair=False`, `keepna=True`, and `prepost=False`. This retains `Close`, `Adj Close`, dividends, and splits for reviewing adjustments. The CSV files are *yfinance* output, not copies of Yahoo's original HTTP responses.
 
-`compute.py` programa las sesiones +1, +2, +5, +10, +21, +42, +63, +126 y +252 con los calendarios de NYSE o Nasdaq de [`pandas_market_calendars`](https://pandas-market-calendars.readthedocs.io/). El **pop** compara el precio de oferta con el cierre **nominal** de D0; cuando hay splits posteriores, el cierre nominal se reconstruye desde `Close` y los factores de split. Es relevante para Visa, cuyo split 4:1 se observa en 2015. El retorno posterior compara `Adj Close` de la fecha objetivo con `Adj Close` de D0. El retorno desde oferta encadena pop y retorno posterior. Las columnas `*_pct` expresan porcentajes con ocho decimales; `post_minus_market_pp` expresa una diferencia en puntos porcentuales.
+`compute.py` schedules sessions +1, +2, +5, +10, +21, +42, +63, +126, and +252 using NYSE or Nasdaq calendars from [`pandas_market_calendars`](https://pandas-market-calendars.readthedocs.io/). The **first-day pop** compares the offer price with the **nominal** D0 close. If later splits occurred, it reconstructs that nominal close from `Close` and the split factors. This matters for Visa's 4:1 split in 2015. The subsequent return compares `Adj Close` at the target session with `Adj Close` at D0. The return from offer chains the pop and the subsequent return. Columns ending in `*_pct` are percentages with eight decimal places; `post_minus_market_pp` is a difference in percentage points.
 
-El comparador de mercado acumula `Mkt-RF + RF` de [Fama/French Research Data Factors, frecuencia diaria](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library/f-f_factors.html), desde la sesión posterior a D0 hasta la sesión objetivo incluida. Los factores de origen vienen en porcentajes y el código los divide por 100 antes de componerlos. `post_minus_market_pp` resta el retorno compuesto del mercado al retorno posterior de la acción. La curva de mediana fija hasta +126 usa solo los casos con retorno disponible en +126; la curva pareada con mercado usa el subconjunto con ambos retornos. +252 se presenta aparte, con su denominador real.
+The market comparator compounds `Mkt-RF + RF` from the [daily Fama/French Research Data Factors](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library/f-f_factors.html), from the session after D0 through the target session. Source factor values are in percent, so the code divides them by 100 before compounding. `post_minus_market_pp` subtracts the compounded market return from the stock's subsequent return. The fixed-sample median curve through +126 includes only cases with a return at +126; the market-paired curve uses the subset with both returns. +252 is reported separately with its actual sample size.
 
-## Límites de interpretación y reproducción
+## Limits of interpretation and reproduction
 
-- **Cobertura:** en la prueba del 16-11-2026 hubo D0 válido para 15/16, retorno en +63 para 15, en +126 para 14 y en +252 para 12. KVUE no devolvió D0; sus retornos quedan vacíos. Las fechas objetivo posteriores al corte aparecen como `inmaduro_al_corte`, no como cero.
-- **Continuidad bursátil:** DIDI se descarga con el ticker actual `DIDIY`, sustentado por el [20-F ante la SEC](https://www.sec.gov/Archives/edgar/data/1764757/000110465923053304/didi-20221231x20f.htm). Su tramo desde el 13-06-2022 se rotula OTC, incluido +252; no se presenta como cotización continua en NYSE.
-- **Benchmark:** en la prueba, el archivo French llegaba al **30-09-2026**. Si la acción tiene precio posterior y el factor aún no cubre la fecha, el retorno de mercado y el exceso quedan vacíos. Los datos de la biblioteca pueden ampliarse en otra ejecución.
-- **Cambios de proveedor:** una nueva descarga puede diferir de la edición 5 aunque el código y el corte sean iguales. En la comprobación local del 16-11-2026 variaron valores de `Adj Close` en **BABA, GM, META y V**; `Close`, fechas, dividendos y splits de esos casos permanecieron iguales. Hubo diferencias pequeñas en retornos derivados, sin cambios de cobertura ni fechas objetivo. El paquete deja hashes y versiones para que cada ejecución sea auditable; no atribuye una causa interna al proveedor.
-- **Alcance:** los scripts reproducen tablas con las que se construyen las figuras de precios y retornos, pero no generan gráficos ni reconstruyen las series de Wikipedia o Google Trends. La comparación automática con los archivos congelados de ed5 se hizo en el entorno del estudio; esos archivos no forman parte del paquete público. Para cotejar cifras publicadas, usa el artículo web público cuando esté disponible y los archivos de tu propia ejecución.
+- **Coverage:** in the 2026-11-16 test, 15 of 16 cases had a valid D0, with returns for 15 at +63, 14 at +126, and 12 at +252. KVUE did not return D0; its returns remain blank. Target dates after the cutoff receive `inmaduro_al_corte`, never a zero return.
+- **Exchange continuity:** DIDI is downloaded under its current ticker `DIDIY`, supported by its [SEC Form 20-F](https://www.sec.gov/Archives/edgar/data/1764757/000110465923053304/didi-20221231x20f.htm). Its segment from 2022-06-13 is labeled OTC, including +252; it is not presented as continuous NYSE trading.
+- **Benchmark:** in the test, the French file ended on **2026-09-30**. When a stock price exists beyond the factor coverage, its market and excess returns remain blank. A later run may receive an extended factor file.
+- **Provider changes:** a new download can differ from edition 5 even with identical code and cutoff. In the 2026-11-16 local check, `Adj Close` values changed for **BABA, GM, META, and V**; their `Close`, dates, dividends, and splits matched. Derived returns changed slightly, with no changes in coverage or target dates. The package records hashes and versions for each run; it does not claim to know the provider's internal cause.
+- **Scope:** the scripts reproduce the tables used for price and return figures. They do not generate the figures or reconstruct the Wikipedia and Google Trends series. The automatic comparison with frozen edition 5 files was performed inside the study; those files are not part of this public package. To compare published figures, use the public web article when available and the files from your own run.
 
-Las ausencias siempre conservan su estado en `case_horizon.csv` y `coverage.csv`; ninguna se rellena con retorno cero.
+Missing observations retain their status in `case_horizon.csv` and `coverage.csv`; none is filled with a zero return.
 
-## Fuentes y condiciones de uso
+## Sources and terms of use
 
-Los precios proceden de [Yahoo Finance mediante yfinance](https://ranaroussi.github.io/yfinance/); la biblioteca documenta su interfaz de descarga. Los factores provienen de la [Data Library de Kenneth French](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html). Los precios de oferta se acreditan con un enlace al prospecto final de la [SEC](https://www.sec.gov/edgar/search/) por caso en `cohort.json`. Consulta las condiciones de cada proveedor antes de redistribuir sus datos: este paquete distribuye el procedimiento y las referencias, no las series descargadas.
+Prices come from [Yahoo Finance through yfinance](https://ranaroussi.github.io/yfinance/), which documents the download interface. Factors come from [Kenneth French's Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html). Offer prices have a link to the final [SEC](https://www.sec.gov/edgar/search/) prospectus for each case in `cohort.json`. Check each provider's terms before redistributing its data: this package distributes the procedure and source references, not the downloaded series.
 
-## Licencia
+## License
 
-El código propio de `fetch.py` y `compute.py` se ofrece bajo la [licencia MIT](LICENSE). La licencia no concede derechos sobre las cotizaciones de Yahoo Finance, los factores de Kenneth French ni los documentos de la SEC. Los archivos descargados permanecen en el equipo del lector y están sujetos a las condiciones de sus respectivas fuentes. `cohort.json` contiene metadatos y enlaces de procedencia; no incluye series de mercado.
+The original code in `fetch.py` and `compute.py` is available under the [MIT License](LICENSE). That license grants no rights to Yahoo Finance prices, Kenneth French factors, or SEC documents. Downloaded files stay on the reader's machine and remain subject to their sources' terms. `cohort.json` contains provenance metadata and links, not market time series.
