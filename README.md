@@ -50,3 +50,7 @@ Las ausencias siempre conservan su estado en `case_horizon.csv` y `coverage.csv`
 ## Fuentes y condiciones de uso
 
 Los precios proceden de [Yahoo Finance mediante yfinance](https://ranaroussi.github.io/yfinance/); la biblioteca documenta su interfaz de descarga. Los factores provienen de la [Data Library de Kenneth French](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html). Los precios de oferta se acreditan con un enlace al prospecto final de la [SEC](https://www.sec.gov/edgar/search/) por caso en `cohort.json`. Consulta las condiciones de cada proveedor antes de redistribuir sus datos: este paquete distribuye el procedimiento y las referencias, no las series descargadas.
+
+## Licencia
+
+El código propio de `fetch.py` y `compute.py` se ofrece bajo la [licencia MIT](LICENSE). La licencia no concede derechos sobre las cotizaciones de Yahoo Finance, los factores de Kenneth French ni los documentos de la SEC. Los archivos descargados permanecen en el equipo del lector y están sujetos a las condiciones de sus respectivas fuentes. `cohort.json` contiene metadatos y enlaces de procedencia; no incluye series de mercado.
